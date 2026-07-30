@@ -1,0 +1,6 @@
+{
+  "name": "Campus Ride Sharing Portal",
+  "description": "A web application for university students to find and share rides with other students traveling in the same direction.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

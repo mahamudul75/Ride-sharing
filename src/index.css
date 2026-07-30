@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+}
+
+/* Light mode styles */
+.light {
+  background-color: #f8fafc !important; /* slate-50 */
+  color: #0f172a !important; /* slate-900 */
+}
+
+.light h1,
+.light h2,
+.light h3,
+.light h4,
+.light h5,
+.light h6 {
+  color: #0f172a !important;
+}
+
+/* Base text overrides */
+.light .text-slate-100 { color: #0f172a !important; }
+.light .text-slate-200 { color: #1e293b !important; }
+.light .text-slate-300 { color: #334155 !important; }
+.light .text-slate-400 { color: #475569 !important; }
+.light .text-slate-500 { color: #64748b !important; }
+
+/* Background overrides */
+.light .bg-slate-950 { background-color: #f8fafc !important; }
+.light .bg-slate-900 { background-color: #ffffff !important; }
+.light .bg-slate-900\/60 { background-color: rgba(255, 255, 255, 0.6) !important; }
+.light .bg-slate-950\/70 { background-color: rgba(248, 250, 252, 0.7) !important; }
+.light .bg-slate-900\/20 { background-color: rgba(241, 245, 249, 0.2) !important; }
+.light .bg-slate-800 { background-color: #f1f5f9 !important; } /* slate-100 */
+.light .bg-slate-800\/50 { background-color: rgba(241, 245, 249, 0.5) !important; }
+.light .bg-slate-800\/10 { background-color: rgba(241, 245, 249, 0.1) !important; }
+.light .bg-slate-700 { background-color: #e2e8f0 !important; } /* slate-200 */
+.light .bg-slate-700\/50 { background-color: rgba(226, 232, 240, 0.5) !important; }
+
+/* Border overrides */
+.light .border-slate-800 { border-color: #e2e8f0 !important; } /* slate-200 */
+.light .border-slate-800\/80 { border-color: rgba(226, 232, 240, 0.8) !important; }
+.light .border-slate-800\/50 { border-color: rgba(226, 232, 240, 0.5) !important; }
+.light .border-slate-700 { border-color: #cbd5e1 !important; } /* slate-300 */
+.light .border-slate-600 { border-color: #94a3b8 !important; }
+
+/* Input specific overrides */
+.light input, 
+.light select, 
+.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+.light input::placeholder, 
+.light select::placeholder, 
+.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Hover overrides */
+.light .hover\:bg-slate-850:hover,
+.light .hover\:bg-slate-800:hover {
+  background-color: #f1f5f9 !important;
+}
+.light .hover\:bg-slate-700:hover {
+  background-color: #cbd5e1 !important;
+}
+.light .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+.light .hover\:border-emerald-500\/50:hover {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+/* Specifically adjust Navbar in light mode */
+.light nav.bg-slate-900 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.light nav.text-white {
+  color: #0f172a !important;
+}
+.light nav .text-white {
+  color: #0f172a !important;
+}
+.light nav .text-slate-300 {
+  color: #475569 !important;
+}
+.light nav .text-slate-300:hover,
+.light nav .hover\:text-white:hover {
+  color: #0f172a !important;
+  background-color: #f1f5f9 !important;
+}
+
+/* Profile / dropdown area in navbar */
+.light nav .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+.light nav img {
+  border-color: #cbd5e1 !important;
+}
+
+/* Footer overrides */
+.light footer {
+  background-color: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+}
+.light footer .text-slate-400 {
+  color: #475569 !important;
+}
+
+/* Modals and overlays */
+.light .bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.4) !important; /* soft dark overlay */
+}
+
