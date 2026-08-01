@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [dbInitialized, setDbInitialized] = useState(false);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -24,7 +25,28 @@ export const AuthProvider = ({ children }) => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  // 1. Database Initialization (Auto-reconnect on mount)
   useEffect(() => {
+    const autoReconnect = async () => {
+      const savedUrl = localStorage.getItem('saved_supabase_db_url');
+      if (savedUrl) {
+        console.log('[Database Auto-connect] Re-establishing saved database connection...');
+        try {
+          await axios.post('/api/db-config', { databaseUrl: savedUrl });
+          console.log('[Database Auto-connect] Successfully reconnected to Supabase!');
+        } catch (err) {
+          console.error('[Database Auto-connect] Failed to reconnect to saved database:', err.message);
+        }
+      }
+      setDbInitialized(true);
+    };
+    autoReconnect();
+  }, []);
+
+  // 2. Fetch Profile after Database is Initialized
+  useEffect(() => {
+    if (!dbInitialized) return;
+
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       // Fetch fresh profile
@@ -47,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setLoading(false);
     }
-  }, [token]);
+  }, [token, dbInitialized]);
 
   const login = (newToken, newUser) => {
     localStorage.setItem('token', newToken);

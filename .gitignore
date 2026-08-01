@@ -7,3 +7,4 @@ coverage/
 .env*
 !.env.example
 *.sqlite
+!campus_ride_sharing.sqlite

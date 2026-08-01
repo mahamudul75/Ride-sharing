@@ -64,13 +64,20 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
+    console.log('[Login Debug] Email received:', email);
     const userWithPass = await UserModel.findByEmail(email);
+    console.log('[Login Debug] User fetched from database:', userWithPass ? { id: userWithPass.id, email: userWithPass.email, hasPassword: Boolean(userWithPass.password) } : null);
+
     if (!userWithPass || !userWithPass.password) {
+      console.log('[Login Debug] Login failed: User not found or password field is empty.');
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
     const isMatch = await bcrypt.compare(password, userWithPass.password);
+    console.log('[Login Debug] Password comparison isMatch:', isMatch);
+
     if (!isMatch) {
+      console.log('[Login Debug] Login failed: Password comparison did not match.');
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 

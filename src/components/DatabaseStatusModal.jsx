@@ -34,8 +34,14 @@ export const DatabaseStatusModal = ({ isOpen, onClose }) => {
 
   const handleConnectSupabase = async (e) => {
     e.preventDefault();
-    if (!dbUrlInput.trim()) {
+    const inputUrl = dbUrlInput.trim();
+    if (!inputUrl) {
       setError('Please paste your Supabase PostgreSQL Connection String.');
+      return;
+    }
+
+    if (inputUrl.startsWith('http://') || inputUrl.startsWith('https://')) {
+      setError('You pasted an HTTP/HTTPS Web URL. Supabase databases require a PostgreSQL connection URI starting with "postgresql://" or "postgres://". Please go to your Supabase Dashboard > Project Settings > Database > Connection string > URI, copy the Connection URI, and paste it here.');
       return;
     }
 
@@ -45,10 +51,11 @@ export const DatabaseStatusModal = ({ isOpen, onClose }) => {
       setMessage(null);
 
       const res = await axios.post('/api/db-config', {
-        databaseUrl: dbUrlInput.trim()
+        databaseUrl: inputUrl
       });
 
       if (res.data.success) {
+        localStorage.setItem('saved_supabase_db_url', dbUrlInput.trim());
         setMessage(res.data.message);
         setDbStatus(res.data.status);
         setDbUrlInput('');
@@ -118,10 +125,52 @@ export const DatabaseStatusModal = ({ isOpen, onClose }) => {
                 <p className="text-xs text-slate-300 leading-relaxed">
                   {dbStatus?.details}
                 </p>
+                {dbStatus?.mode === 'cloud' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem('saved_supabase_db_url');
+                      window.location.reload();
+                    }}
+                    className="mt-2 text-xs text-rose-400 hover:text-rose-300 hover:underline font-bold block cursor-pointer transition-colors"
+                  >
+                    Disconnect &amp; Switch back to Local SQLite
+                  </button>
+                )}
               </div>
             </div>
           )}
         </div>
+
+        {/* Invalid Config Warning Banner */}
+        {dbStatus?.hasInvalidEnvUrl && (
+          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 text-amber-200">
+            <div className="flex items-start space-x-2 text-amber-400 font-bold text-xs">
+              <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+              <div>
+                <span className="block uppercase tracking-wider">Incorrect DATABASE_URL in Settings</span>
+                <span className="font-normal text-[11px] text-slate-300 normal-case block mt-0.5">
+                  The URL configured in your Settings ends up falling back to SQLite because it is not a database connection string.
+                </span>
+              </div>
+            </div>
+            <div className="text-xs space-y-2 pt-1 border-t border-amber-500/10">
+              <p className="leading-relaxed">
+                Your current settings URL is: <code className="bg-slate-950 px-1.5 py-0.5 rounded text-rose-400 text-[10px] break-all">{dbStatus.envUrl}</code>
+              </p>
+              <p className="leading-relaxed text-slate-300">
+                This is a Web API URL (HTTP/HTTPS) or is not a valid PostgreSQL URI. Supabase has two different URLs:
+              </p>
+              <ul className="text-[11px] list-disc pl-5 space-y-1 text-slate-300">
+                <li><strong className="text-white">Project URL</strong> (starts with <code className="text-rose-400">https://</code>): Incorrect for database connection. Used for frontend APIs.</li>
+                <li><strong className="text-white">PostgreSQL URI</strong> (starts with <code className="text-emerald-400">postgresql://</code>): <strong>Correct Connection String</strong>. Used for backend database.</li>
+              </ul>
+              <p className="text-[11px] text-slate-400">
+                Please copy the <strong className="text-white">PostgreSQL Connection String</strong> from your <strong className="text-white">Supabase Dashboard &gt; Project Settings &gt; Database &gt; Connection string &gt; URI</strong>, replace the password placeholder, and paste it below or update the App Settings.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Status Feedback Messages */}
         {message && (
@@ -188,16 +237,46 @@ export const DatabaseStatusModal = ({ isOpen, onClose }) => {
         </form>
 
         {/* Instructions footer */}
-        <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-1.5 text-[11px] text-slate-400">
-          <div className="font-semibold text-slate-300 flex items-center space-x-1">
-            <HelpCircle className="w-3.5 h-3.5 text-purple-400" />
-            <span>How Registration Data Persistence Works:</span>
+        <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-3.5 text-xs text-slate-400">
+          <div className="font-semibold text-slate-300 flex items-center space-x-1.5 border-b border-slate-800 pb-1.5">
+            <HelpCircle className="w-4 h-4 text-purple-400 shrink-0" />
+            <span className="text-sm font-bold text-slate-200">কীভাবে কাজ করে ও সমাধান (বাংলা গাইড)</span>
+          </div>
+          
+          <div className="space-y-2 text-[11px] leading-relaxed">
+            <p>
+              🚦 <strong className="text-amber-400">লগইন ও ডেটা স্টোরিং সমস্যা সমাধান:</strong> আপনার অ্যাপটি বর্তমানে <strong className="text-white">Local SQLite</strong> ডেটাবেজে কাজ করছে। তাই অ্যাপে নতুন অ্যাকাউন্ট তৈরি ও লগইন করা যাচ্ছে, কিন্তু সেই ডেটা আপনার <strong className="text-emerald-400">Supabase Dashboard</strong>-এ স্টোর হচ্ছে না।
+            </p>
+            <p>
+              Supabase-এ সরাসরি ডেটা সেভ করতে চাইলে নিচে আপনার সঠিক <strong className="text-white">PostgreSQL Connection URI</strong> দিয়ে কানেক্ট করতে হবে।
+            </p>
+            <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg space-y-1.5 text-slate-300">
+              <span className="font-bold text-emerald-400 block">কানেকশন ফেইল হওয়ার সাধারণ কারণ ও সমাধান:</span>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>
+                  <strong className="text-white">ভুল পাসওয়ার্ড (Password Error):</strong> আপনার পাসওয়ার্ডে যদি স্পেশাল ক্যারেক্টার থাকে (যেমন <code className="text-rose-400">@</code> বা <code className="text-rose-400">$</code>), তবে কানেকশন স্ট্রিং সঠিকমত কানেক্ট নাও হতে পারে।
+                </li>
+                <li>
+                  <strong className="text-white">সমাধান:</strong> Supabase Dashboard-এ যান &gt; <strong className="text-white">Project Settings &gt; Database &gt; Database Password</strong>-এ গিয়ে একটি নতুন সহজ পাসওয়ার্ড সেট করুন (যেটিতে <code className="text-rose-400">@</code> ক্যারেক্টার নেই)। এরপর নতুন পাসওয়ার্ড দিয়ে নিচের মত করে কানেকশন স্ট্রিংটি এখানে পেস্ট করুন:
+                  <code className="block bg-slate-950 p-1.5 rounded text-purple-300 font-mono text-[10px] break-all mt-1">
+                    postgresql://postgres:[YOUR_NEW_PASSWORD]@db.gcwqhpybbquvbikzbiho.supabase.co:5432/postgres
+                  </code>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Instructions footer English */}
+        <div className="p-3 bg-slate-950/40 border border-slate-800/50 rounded-xl space-y-1.5 text-[10px] text-slate-500">
+          <div className="font-semibold text-slate-400 flex items-center space-x-1">
+            <span>How Data Persistence Works (English):</span>
           </div>
           <p>
-            1. <strong>Local Mode:</strong> Registration, ride postings, and ride requests are immediately saved into the local SQLite file (<code className="text-slate-300">campus_ride_sharing.sqlite</code>).
+            1. <strong>Local Mode:</strong> Registration, ride postings, and requests are saved locally in <code className="text-slate-400">campus_ride_sharing.sqlite</code>.
           </p>
           <p>
-            2. <strong>Supabase Mode:</strong> Once connected, registrations and ride data are written directly to your live Supabase cloud database tables in real-time. Sequence numbers are auto-aligned so no duplicate ID collisions occur.
+            2. <strong>Supabase Mode:</strong> Once successfully connected, all database transactions run directly on your live Supabase cloud database.
           </p>
         </div>
 

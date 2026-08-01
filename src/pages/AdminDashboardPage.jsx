@@ -176,38 +176,44 @@ export const AdminDashboardPage = () => {
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center space-x-2 border-b border-slate-800 pb-2">
+        <div className="flex items-center space-x-1 sm:space-x-2 border-b border-slate-800 pb-2">
           <button
             onClick={() => setActiveTab('users')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'users'
                 ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
-            Manage Users ({users.length})
+            <span className="hidden sm:inline">Manage Users</span>
+            <span className="inline sm:hidden">Users</span>
+            {' '}({users.length})
           </button>
 
           <button
             onClick={() => setActiveTab('rides')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'rides'
                 ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
-            Manage Rides ({rides.length})
+            <span className="hidden sm:inline">Manage Rides</span>
+            <span className="inline sm:hidden">Rides</span>
+            {' '}({rides.length})
           </button>
 
           <button
             onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'requests'
                 ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
-            Request Logs ({requests.length})
+            <span className="hidden sm:inline">Request Logs</span>
+            <span className="inline sm:hidden">Requests</span>
+            {' '}({requests.length})
           </button>
         </div>
 

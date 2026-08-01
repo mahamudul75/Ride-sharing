@@ -26,8 +26,10 @@ export const HomePage = () => {
   const [rideDate, setRideDate] = useState('');
   const [featuredRides, setFeaturedRides] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dbStatus, setDbStatus] = useState(null);
 
   useEffect(() => {
+    // Fetch featured rides
     axios.get('/api/rides?status=available')
       .then(res => {
         if (res.data.success) {
@@ -36,6 +38,15 @@ export const HomePage = () => {
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
+
+    // Fetch database status
+    axios.get('/api/db-status')
+      .then(res => {
+        if (res.data && res.data.success) {
+          setDbStatus(res.data);
+        }
+      })
+      .catch(err => console.error('Error fetching db status in homepage:', err));
   }, []);
 
   const handleSearchSubmit = (e) => {
@@ -49,6 +60,38 @@ export const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      
+      {/* Database Connection Warning Banner */}
+      {dbStatus?.mode === 'local' && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 animate-in fade-in slide-in-from-top duration-300">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center space-x-2.5 text-amber-500 font-medium text-left">
+              <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-500 text-[10px] font-extrabold font-mono">i</span>
+              <div>
+                <p className="leading-normal font-semibold">
+                  🚦 ডেটাবেজ কানেকশন অ্যালার্ট (Local Mode Active):
+                </p>
+                <p className="text-[11px] text-amber-500/80 leading-normal mt-0.5">
+                  বর্তমানে আপনার অ্যাপটি লোকাল SQLite ফাইলে কাজ করছে। ডেটা সরাসরি আপনার Supabase ক্লাউড ড্যাশবোর্ডে স্টোর করতে চাইলে উপরে ডানদিকের "Database Status" বাটনে অথবা এখানে ক্লিক করে সঠিক কানেকশন URI দিন।
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const navBtn = document.querySelector('[title*="Database Status"]');
+                if (navBtn) {
+                  navBtn.click();
+                } else {
+                  alert("Please click the 'Database Status' icon at the top right of the navigation bar.");
+                }
+              }}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition-all text-[11px] cursor-pointer flex-shrink-0 shadow-sm whitespace-nowrap"
+            >
+              কানেক্ট Supabase (Connect Now)
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-slate-900/60 border-b border-slate-800/80 py-16 lg:py-24">

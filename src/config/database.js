@@ -5,9 +5,24 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 
 const { Pool } = pg;
-const DB_FILE_PATH = (process.env.VERCEL || process.env.ZEIT_ENV || process.env.NODE_ENV === 'production')
+const IS_PRODUCTION = (process.env.VERCEL || process.env.ZEIT_ENV || process.env.NODE_ENV === 'production');
+const DB_FILE_PATH = IS_PRODUCTION
   ? path.join('/tmp', 'campus_ride_sharing.sqlite')
   : path.join(process.cwd(), 'campus_ride_sharing.sqlite');
+
+// In production/serverless, copy the local SQLite database from the repo if it exists and /tmp does not have it yet.
+if (IS_PRODUCTION) {
+  try {
+    const srcPath = path.join(process.cwd(), 'campus_ride_sharing.sqlite');
+    const destPath = DB_FILE_PATH;
+    if (!fs.existsSync(destPath) && fs.existsSync(srcPath)) {
+      console.log(`[Database] Copying pre-seeded database from repository ${srcPath} to ${destPath}`);
+      fs.copyFileSync(srcPath, destPath);
+    }
+  } catch (err) {
+    console.warn('[Database] Could not copy pre-seeded database to /tmp:', err.message);
+  }
+}
 
 let pgPool = null;
 let sqliteDb = null;
@@ -94,6 +109,9 @@ export async function convertDirectToPooled(dbUrl) {
         return `${scheme}://${username}:${password}@${host}:6543/${database}`;
       } catch (err) {
         console.log(`[Database] Pooler probe failed for region ${region}: ${err.message}`);
+        if (err.message && err.message.includes('password authentication failed')) {
+          throw new Error(`password authentication failed for user "postgres" in region ${region}. This means your Supabase project is indeed located in ${region}, but the password you provided in your connection URL is incorrect. Please double check or reset your database password in the Supabase Dashboard.`);
+        }
       }
     }
   }
@@ -151,12 +169,40 @@ export async function initDatabase() {
       pgPool = null;
     }
   } else {
-    console.log("No custom Supabase DATABASE_URL provided. Operating with local SQLite database.");
+    if (dbUrl && (dbUrl.startsWith('http://') || dbUrl.startsWith('https://'))) {
+      console.warn("\n========================================================================\n" +
+                   "[DATABASE CONFIG ERROR] Your DATABASE_URL starts with http/https:\n" +
+                   `  "${dbUrl}"\n` +
+                   "This is a Supabase Web API/REST URL, NOT a database connection string!\n" +
+                   "Please use a PostgreSQL Connection String starting with 'postgresql://' or 'postgres://'.\n" +
+                   "The app is falling back to local SQLite database mode to remain functional.\n" +
+                   "========================================================================\n");
+    } else {
+      console.log("No custom Supabase DATABASE_URL provided or URL is placeholder. Operating with local SQLite database.");
+    }
   }
 
   // Fallback to SQLite
   console.log("Initializing local SQLite database...");
-  const SQL = await initSqlJs();
+  
+  let initConfig = {};
+  try {
+    // First try relative to process.cwd() (standard and serverless environment)
+    const wasmPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
+    if (fs.existsSync(wasmPath)) {
+      initConfig.wasmBinary = fs.readFileSync(wasmPath);
+      console.log("[Database] Loaded sql-wasm.wasm binary successfully.");
+    }
+  } catch (err) {
+    console.warn("[Database] Could not pre-load sql-wasm.wasm binary:", err.message);
+  }
+
+  const SQL = await initSqlJs({
+    ...initConfig,
+    locateFile: (file) => {
+      return path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file);
+    }
+  });
 
   if (fs.existsSync(DB_FILE_PATH)) {
     const filebuffer = fs.readFileSync(DB_FILE_PATH);
@@ -564,19 +610,26 @@ export async function executeRun(sql, params = []) {
 }
 
 export function getDatabaseStatus() {
+  const envUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '';
+  const hasInvalidEnvUrl = envUrl && (envUrl.startsWith('http://') || envUrl.startsWith('https://') || !envUrl.includes('://'));
+
   if (pgPool) {
     return {
       type: 'Supabase PostgreSQL',
       connected: true,
       mode: 'cloud',
-      details: 'Connected to external Supabase PostgreSQL cloud database.'
+      details: 'Connected to external Supabase PostgreSQL cloud database.',
+      envUrl: envUrl ? envUrl.replace(/:[^:@\s]+@/g, ':REDACTED@') : '',
+      hasInvalidEnvUrl: false
     };
   }
   return {
     type: 'Local SQLite Engine',
     connected: true,
     mode: 'local',
-    details: 'Operating on persistent local file database (campus_ride_sharing.sqlite).'
+    details: 'Operating on persistent local file database (campus_ride_sharing.sqlite).',
+    envUrl: envUrl ? envUrl.replace(/:[^:@\s]+@/g, ':REDACTED@') : '',
+    hasInvalidEnvUrl: Boolean(hasInvalidEnvUrl)
   };
 }
 
@@ -587,6 +640,10 @@ export async function setDatabaseUrl(newDbUrl) {
 
   let cleanUrl = newDbUrl.trim();
 
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    throw new Error('You pasted an HTTP/HTTPS Web URL. Supabase databases require a PostgreSQL connection URI starting with "postgresql://" or "postgres://". Please go to your Supabase Dashboard > Project Settings > Database > Connection string > URI, copy it, and paste it here.');
+  }
+
   if (cleanUrl.includes('[YOUR-PASSWORD]') || cleanUrl.includes('[PASSWORD]') || cleanUrl.includes('[YOUR-')) {
     throw new Error('Please replace [YOUR-PASSWORD] in the connection string with your actual Supabase database password before connecting.');
   }
@@ -596,7 +653,11 @@ export async function setDatabaseUrl(newDbUrl) {
     try {
       cleanUrl = await convertDirectToPooled(cleanUrl);
     } catch (err) {
-      console.log("Failed to convert direct URL to pooled URL, using as-is:", err.message);
+      console.log("Failed to convert direct URL to pooled URL:", err.message);
+      // If it's a specific password error, we want to bubble it up directly to the user!
+      if (err.message && err.message.includes('password authentication failed')) {
+        throw err;
+      }
     }
   }
 
@@ -605,8 +666,23 @@ export async function setDatabaseUrl(newDbUrl) {
   const poolConfig = parsePgPoolConfig(cleanUrl);
   const testPool = new Pool(poolConfig);
 
-  const client = await testPool.connect();
-  client.release();
+  let client;
+  try {
+    client = await testPool.connect();
+    client.release();
+  } catch (err) {
+    try { await testPool.end(); } catch (e) {}
+    const errMsg = err.message || '';
+    if (errMsg.includes('password authentication failed')) {
+      throw new Error('ভুল পাসওয়ার্ড (Incorrect Password)! আপনার Supabase প্রোজেক্টের সঠিক ডেটাবেজ পাসওয়ার্ড দিয়ে চেষ্টা করুন। টিপ: যদি পাসওয়ার্ডে "@" বা "$" বা অন্য কোনো স্পেশাল ক্যারেক্টার থাকে, তবে Supabase Dashboard থেকে একটি সহজ পাসওয়ার্ড সেট করুন এবং তারপর আবার চেষ্টা করুন।');
+    } else if (errMsg.includes('ENOTFOUND') || errMsg.includes('getaddrinfo') || errMsg.includes('tenant/user')) {
+      throw new Error('Supabase প্রোজেক্ট রেফারেন্স বা Host সঠিক নয় (Invalid Host/Project Reference)! সঠিক কানেকশন URI দিন।');
+    } else if (errMsg.includes('ECONNREFUSED')) {
+      throw new Error('সরাসরি ৫৪৩২ পোর্টে কানেকশন রিফিউজড (Direct port 5432 blocked/IPv6 issue)! এই হোস্টে পোর্ট ৫৪৩২ কানেকশন সম্ভব নয়। দয়া করে নিশ্চিত করুন আপনার সঠিক ডেটাবেজ পাসওয়ার্ডটি দিয়েছেন, যাতে আমরা স্বয়ংক্রিয়ভাবে পোর্ট ৬৫৪৩ ট্রানজেকশন পুলারে কনভার্ট করতে পারি।');
+    } else {
+      throw new Error(`কানেকশন ফেইলড: ${errMsg}`);
+    }
+  }
 
   if (pgPool) {
     try { await pgPool.end(); } catch (e) {}

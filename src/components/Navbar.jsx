@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DatabaseStatusModal } from './DatabaseStatusModal';
+import axios from 'axios';
 import { 
   Car, 
   Search, 
@@ -25,6 +26,26 @@ export const Navbar = () => {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [dbStatus, setDbStatus] = useState(null);
+
+  useEffect(() => {
+    const fetchDbStatus = () => {
+      axios.get('/api/db-status')
+        .then(res => {
+          if (res.data && res.data.success) {
+            setDbStatus(res.data);
+          }
+        })
+        .catch(err => console.error('Error fetching db status in navbar:', err));
+    };
+
+    fetchDbStatus();
+
+    // Re-fetch when the modal opens or closes (in case database configuration has changed)
+    if (!isDbModalOpen) {
+      fetchDbStatus();
+    }
+  }, [isDbModalOpen]);
 
   const handleLogout = () => {
     logout();
@@ -62,6 +83,31 @@ export const Navbar = () => {
 
             {/* Right: User Profile & Logout */}
             <div className="flex items-center space-x-3">
+              {/* Database Connection / Supabase Status Button */}
+              <button
+                onClick={() => setIsDbModalOpen(true)}
+                className="p-2 md:px-3.5 md:py-2 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-900 hover:border-slate-200 dark:hover:border-slate-800 rounded-xl transition-all duration-200 cursor-pointer flex items-center space-x-2"
+                title="Database Status & Configuration (ডেটাবেজ স্ট্যাটাস)"
+              >
+                <Database className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                <div className="hidden md:flex flex-col text-left leading-none">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Database Status</span>
+                  <span className="text-xs font-bold mt-0.5">
+                    {dbStatus?.mode === 'cloud' ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                        <span>Cloud (Live)</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                      </span>
+                    ) : (
+                      <span className="text-amber-500 dark:text-amber-400 flex items-center space-x-1">
+                        <span>Local SQLite</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span>
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </button>
+
               {isAuthenticated && user ? (
                 <div className="flex items-center space-x-3">
                   <Link
@@ -256,20 +302,6 @@ export const Navbar = () => {
             {/* Drawer Footer Settings */}
             <div className="p-4 border-t border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/50 space-y-2">
               <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  setIsDbModalOpen(true);
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-650 dark:text-purple-300 border border-purple-100 dark:border-purple-500/20 transition-all duration-200 flex items-center justify-between cursor-pointer"
-              >
-                <div className="flex items-center space-x-2">
-                  <Database className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <span>Database Settings</span>
-                </div>
-                <span className="text-[10px] bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-200/50 dark:border-purple-800/30">DB Sync</span>
-              </button>
-
-              <button
                 onClick={toggleTheme}
                 className="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/50 dark:border-slate-800/50 transition-all duration-200 flex items-center justify-between cursor-pointer"
               >
@@ -287,6 +319,17 @@ export const Navbar = () => {
                   )}
                 </div>
                 <span className="text-[10px] opacity-60 capitalize">{theme} Mode</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsDbModalOpen(true);
+                  setMenuOpen(false);
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 dark:bg-emerald-500/5 hover:bg-emerald-500/20 dark:hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/20 transition-all duration-200 flex items-center space-x-2 cursor-pointer"
+              >
+                <Database className="w-4 h-4" />
+                <span>Database Connection</span>
               </button>
             </div>
 

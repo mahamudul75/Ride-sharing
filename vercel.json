@@ -6,8 +6,13 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api|assets|favicon|logo|icon|.*\\.).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "node_modules/sql.js/dist/sql-wasm.wasm"
+    }
+  }
 }

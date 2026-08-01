@@ -145,7 +145,11 @@ export const DriverDashboardPage = () => {
             }`}
           >
             <Car className="w-4 h-4" />
-            <span>My Published Rides ({myRides.length})</span>
+            <span>
+              <span className="hidden sm:inline">My Published Rides</span>
+              <span className="inline sm:hidden">My Rides</span>
+              {' '}({myRides.length})
+            </span>
           </button>
 
           <button
@@ -157,10 +161,15 @@ export const DriverDashboardPage = () => {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Incoming Passenger Requests ({incomingRequests.length})</span>
+            <span>
+              <span className="hidden sm:inline">Incoming Passenger Requests</span>
+              <span className="inline sm:hidden">Requests</span>
+              {' '}({incomingRequests.length})
+            </span>
             {pendingCount > 0 && (
               <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black">
-                {pendingCount} new
+                {pendingCount}
+                <span className="hidden xs:inline"> new</span>
               </span>
             )}
           </button>
