@@ -26,6 +26,7 @@ if (IS_PRODUCTION) {
 
 let pgPool = null;
 let sqliteDb = null;
+let initPromise = null;
 
 export function parsePgPoolConfig(dbUrl) {
   if (!dbUrl || typeof dbUrl !== 'string') return null;
@@ -119,149 +120,168 @@ export async function convertDirectToPooled(dbUrl) {
 }
 
 export async function initDatabase() {
-  const isValidPgUrl = (url) => url && (url.startsWith('postgres://') || url.startsWith('postgresql://'));
-
-  let dbUrl = null;
-  if (isValidPgUrl(process.env.SUPABASE_DB_URL)) {
-    dbUrl = process.env.SUPABASE_DB_URL;
-  } else if (isValidPgUrl(process.env.DATABASE_URL)) {
-    dbUrl = process.env.DATABASE_URL;
-  } else {
-    // If neither is a valid pg connection string, we check if there's any fallback
-    dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+  if (pgPool || sqliteDb) {
+    return pgPool || sqliteDb;
+  }
+  if (initPromise) {
+    return initPromise;
   }
 
-  // Convert direct Supabase connection string to pooled IPv4-compatible string
-  if (dbUrl && dbUrl.includes('.supabase.co')) {
-    try {
-      dbUrl = await convertDirectToPooled(dbUrl);
-    } catch (err) {
-      console.log("[Database] Direct to pooled URL conversion failed:", err.message);
-    }
-  }
+  initPromise = (async () => {
+    const isValidPgUrl = (url) => url && (url.startsWith('postgres://') || url.startsWith('postgresql://'));
 
-  const isPlaceholderUrl = !dbUrl ||
-    dbUrl.includes('[YOUR-') ||
-    dbUrl.includes('YOUR-PROJECT-REF') ||
-    dbUrl.includes('your-project') ||
-    dbUrl.includes('[PASSWORD]') ||
-    !isValidPgUrl(dbUrl);
-
-  if (dbUrl && !isPlaceholderUrl) {
-    console.log("Connecting to Supabase PostgreSQL Database...");
-    try {
-      const poolConfig = parsePgPoolConfig(dbUrl);
-      pgPool = new Pool(poolConfig);
-
-      // Verify database connection
-      const client = await pgPool.connect();
-      console.log("Successfully connected to Supabase PostgreSQL!");
-      client.release();
-
-      await initPostgresTables();
-      await seedPostgresData();
-      return pgPool;
-    } catch (err) {
-      console.log("Supabase PostgreSQL connection failed, falling back to local SQLite database:", err.message);
-      if (pgPool) {
-        try { await pgPool.end(); } catch (e) {}
-      }
-      pgPool = null;
-    }
-  } else {
-    if (dbUrl && (dbUrl.startsWith('http://') || dbUrl.startsWith('https://'))) {
-      console.warn("\n========================================================================\n" +
-                   "[DATABASE CONFIG ERROR] Your DATABASE_URL starts with http/https:\n" +
-                   `  "${dbUrl}"\n` +
-                   "This is a Supabase Web API/REST URL, NOT a database connection string!\n" +
-                   "Please use a PostgreSQL Connection String starting with 'postgresql://' or 'postgres://'.\n" +
-                   "The app is falling back to local SQLite database mode to remain functional.\n" +
-                   "========================================================================\n");
+    let dbUrl = null;
+    if (isValidPgUrl(process.env.SUPABASE_DB_URL)) {
+      dbUrl = process.env.SUPABASE_DB_URL;
+    } else if (isValidPgUrl(process.env.DATABASE_URL)) {
+      dbUrl = process.env.DATABASE_URL;
     } else {
-      console.log("No custom Supabase DATABASE_URL provided or URL is placeholder. Operating with local SQLite database.");
+      // If neither is a valid pg connection string, we check if there's any fallback
+      dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
     }
-  }
 
-  // Fallback to SQLite
-  console.log("Initializing local SQLite database...");
-  
-  let initConfig = {};
+    // Convert direct Supabase connection string to pooled IPv4-compatible string
+    if (dbUrl && dbUrl.includes('.supabase.co')) {
+      try {
+        dbUrl = await convertDirectToPooled(dbUrl);
+      } catch (err) {
+        console.log("[Database] Direct to pooled URL conversion failed:", err.message);
+      }
+    }
+
+    const isPlaceholderUrl = !dbUrl ||
+      dbUrl.includes('[YOUR-') ||
+      dbUrl.includes('YOUR-PROJECT-REF') ||
+      dbUrl.includes('your-project') ||
+      dbUrl.includes('[PASSWORD]') ||
+      !isValidPgUrl(dbUrl);
+
+    if (dbUrl && !isPlaceholderUrl) {
+      console.log("Connecting to Supabase PostgreSQL Database...");
+      let tempPool = null;
+      try {
+        const poolConfig = parsePgPoolConfig(dbUrl);
+        tempPool = new Pool(poolConfig);
+
+        // Verify database connection
+        const client = await tempPool.connect();
+        console.log("Successfully connected to Supabase PostgreSQL!");
+        client.release();
+
+        await initPostgresTables(tempPool);
+        await seedPostgresData(tempPool);
+        
+        pgPool = tempPool;
+        return pgPool;
+      } catch (err) {
+        console.log("Supabase PostgreSQL connection failed, falling back to local SQLite database:", err.message);
+        if (tempPool) {
+          try { await tempPool.end(); } catch (e) {}
+        }
+        pgPool = null;
+      }
+    } else {
+      if (dbUrl && (dbUrl.startsWith('http://') || dbUrl.startsWith('https://'))) {
+        console.warn("\n========================================================================\n" +
+                     "[DATABASE CONFIG ERROR] Your DATABASE_URL starts with http/https:\n" +
+                     `  "${dbUrl}"\n` +
+                     "This is a Supabase Web API/REST URL, NOT a database connection string!\n" +
+                     "Please use a PostgreSQL Connection String starting with 'postgresql://' or 'postgres://'.\n" +
+                     "The app is falling back to local SQLite database mode to remain functional.\n" +
+                     "========================================================================\n");
+      } else {
+        console.log("No custom Supabase DATABASE_URL provided or URL is placeholder. Operating with local SQLite database.");
+      }
+    }
+
+    // Fallback to SQLite
+    console.log("Initializing local SQLite database...");
+    
+    let initConfig = {};
+    try {
+      // First try relative to process.cwd() (standard and serverless environment)
+      const wasmPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
+      if (fs.existsSync(wasmPath)) {
+        initConfig.wasmBinary = fs.readFileSync(wasmPath);
+        console.log("[Database] Loaded sql-wasm.wasm binary successfully.");
+      }
+    } catch (err) {
+      console.warn("[Database] Could not pre-load sql-wasm.wasm binary:", err.message);
+    }
+
+    const SQL = await initSqlJs({
+      ...initConfig,
+      locateFile: (file) => {
+        return path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file);
+      }
+    });
+
+    if (fs.existsSync(DB_FILE_PATH)) {
+      const filebuffer = fs.readFileSync(DB_FILE_PATH);
+      sqliteDb = new SQL.Database(filebuffer);
+    } else {
+      sqliteDb = new SQL.Database();
+    }
+
+    sqliteDb.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        phone TEXT,
+        department TEXT,
+        role TEXT NOT NULL DEFAULT 'student',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS profiles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE,
+        profile_image TEXT,
+        vehicle_name TEXT,
+        vehicle_number TEXT,
+        vehicle_type TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS rides (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        driver_id INTEGER NOT NULL,
+        pickup_location TEXT NOT NULL,
+        destination TEXT NOT NULL,
+        ride_date TEXT NOT NULL,
+        ride_time TEXT NOT NULL,
+        available_seats INTEGER NOT NULL,
+        fare REAL NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'available',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (driver_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS ride_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ride_id INTEGER NOT NULL,
+        passenger_id INTEGER NOT NULL,
+        request_status TEXT NOT NULL DEFAULT 'Pending',
+        request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE CASCADE,
+        FOREIGN KEY (passenger_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
+    saveSqliteDatabase();
+    await seedSqliteData();
+    return sqliteDb;
+  })();
+
   try {
-    // First try relative to process.cwd() (standard and serverless environment)
-    const wasmPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
-    if (fs.existsSync(wasmPath)) {
-      initConfig.wasmBinary = fs.readFileSync(wasmPath);
-      console.log("[Database] Loaded sql-wasm.wasm binary successfully.");
-    }
+    return await initPromise;
   } catch (err) {
-    console.warn("[Database] Could not pre-load sql-wasm.wasm binary:", err.message);
+    initPromise = null;
+    throw err;
   }
-
-  const SQL = await initSqlJs({
-    ...initConfig,
-    locateFile: (file) => {
-      return path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file);
-    }
-  });
-
-  if (fs.existsSync(DB_FILE_PATH)) {
-    const filebuffer = fs.readFileSync(DB_FILE_PATH);
-    sqliteDb = new SQL.Database(filebuffer);
-  } else {
-    sqliteDb = new SQL.Database();
-  }
-
-  sqliteDb.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      phone TEXT,
-      department TEXT,
-      role TEXT NOT NULL DEFAULT 'student',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS profiles (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL UNIQUE,
-      profile_image TEXT,
-      vehicle_name TEXT,
-      vehicle_number TEXT,
-      vehicle_type TEXT,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS rides (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      driver_id INTEGER NOT NULL,
-      pickup_location TEXT NOT NULL,
-      destination TEXT NOT NULL,
-      ride_date TEXT NOT NULL,
-      ride_time TEXT NOT NULL,
-      available_seats INTEGER NOT NULL,
-      fare REAL NOT NULL,
-      description TEXT,
-      status TEXT NOT NULL DEFAULT 'available',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (driver_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS ride_requests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ride_id INTEGER NOT NULL,
-      passenger_id INTEGER NOT NULL,
-      request_status TEXT NOT NULL DEFAULT 'Pending',
-      request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (ride_id) REFERENCES rides(id) ON DELETE CASCADE,
-      FOREIGN KEY (passenger_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-  `);
-
-  saveSqliteDatabase();
-  await seedSqliteData();
-  return sqliteDb;
 }
 
 function saveSqliteDatabase() {
@@ -272,12 +292,12 @@ function saveSqliteDatabase() {
   }
 }
 
-async function syncPostgresSequences() {
-  if (!pgPool) return;
+async function syncPostgresSequences(pool = pgPool) {
+  if (!pool) return;
   const tables = ['users', 'profiles', 'rides', 'ride_requests'];
   for (const table of tables) {
     try {
-      await pgPool.query(`
+      await pool.query(`
         SELECT setval(
           pg_get_serial_sequence('${table}', 'id'),
           COALESCE((SELECT MAX(id) FROM ${table}), 0) + 1,
@@ -286,7 +306,7 @@ async function syncPostgresSequences() {
       `);
     } catch (err) {
       try {
-        await pgPool.query(`SELECT setval('${table}_id_seq', COALESCE((SELECT MAX(id) FROM ${table}), 0) + 1, false);`);
+        await pool.query(`SELECT setval('${table}_id_seq', COALESCE((SELECT MAX(id) FROM ${table}), 0) + 1, false);`);
       } catch (e) {
         console.log(`Notice syncing sequence for ${table}:`, e.message);
       }
@@ -294,10 +314,10 @@ async function syncPostgresSequences() {
   }
 }
 
-async function initPostgresTables() {
-  if (!pgPool) return;
+async function initPostgresTables(pool = pgPool) {
+  if (!pool) return;
 
-  await pgPool.query(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -341,13 +361,13 @@ async function initPostgresTables() {
     );
   `);
 
-  await syncPostgresSequences();
+  await syncPostgresSequences(pool);
 }
 
-async function seedPostgresData() {
-  if (!pgPool) return;
+async function seedPostgresData(pool = pgPool) {
+  if (!pool) return;
   try {
-    const res = await pgPool.query("SELECT COUNT(*) as count FROM users");
+    const res = await pool.query("SELECT COUNT(*) as count FROM users");
     const count = parseInt(res.rows[0].count, 10);
 
     if (count === 0) {
@@ -355,83 +375,83 @@ async function seedPostgresData() {
       const hashedPassword = await bcrypt.hash("password123", 10);
 
       // Admin
-      const adminRes = await pgPool.query(
+      const adminRes = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["System Admin", "admin@campus.edu", hashedPassword, "+8801700000000", "Computer Science", "admin"]
       );
       const adminId = adminRes.rows[0].id;
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
         [adminId, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250", "", "", ""]
       );
 
       // Drivers
-      const driver1Res = await pgPool.query(
+      const driver1Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Rahim Ahmed", "rahim.driver@campus.edu", hashedPassword, "+8801811111111", "Electrical Engineering", "driver"]
       );
       const driver1Id = driver1Res.rows[0].id;
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
         [driver1Id, "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250", "Toyota Corolla", "DHAKA-METRO-GA-1234", "Car"]
       );
 
-      const driver2Res = await pgPool.query(
+      const driver2Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Tanvir Hasan", "tanvir.driver@campus.edu", hashedPassword, "+8801922222222", "Software Engineering", "driver"]
       );
       const driver2Id = driver2Res.rows[0].id;
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
         [driver2Id, "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250", "Yamaha FZ-S", "DHAKA-METRO-HA-5678", "Bike"]
       );
 
       // Students
-      const student1Res = await pgPool.query(
+      const student1Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Anika Rahman", "anika.student@campus.edu", hashedPassword, "+8801733333333", "Software Engineering", "student"]
       );
       const student1Id = student1Res.rows[0].id;
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
         [student1Id, "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=250", "", "", ""]
       );
 
-      const student2Res = await pgPool.query(
+      const student2Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Sabbir Hossain", "sabbir.student@campus.edu", hashedPassword, "+8801644444444", "Business Administration", "student"]
       );
       const student2Id = student2Res.rows[0].id;
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
         [student2Id, "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=250", "", "", ""]
       );
 
       // Rides
-      const ride1Res = await pgPool.query(
+      const ride1Res = await pool.query(
         `INSERT INTO rides (driver_id, pickup_location, destination, ride_date, ride_time, available_seats, fare, description, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
         [driver1Id, "Dhanmondi 27", "Daffodil International University", "2026-08-01", "08:30", 3, 120, "AC Sedan car, comfortable ride directly to Main Campus.", "available"]
       );
       const ride1Id = ride1Res.rows[0].id;
 
-      const ride2Res = await pgPool.query(
+      const ride2Res = await pool.query(
         `INSERT INTO rides (driver_id, pickup_location, destination, ride_date, ride_time, available_seats, fare, description, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
         [driver2Id, "Uttara Sector 10", "Campus Gate 2", "2026-08-01", "09:00", 1, 80, "Quick bike ride to campus. Helmet provided.", "available"]
       );
       const ride2Id = ride2Res.rows[0].id;
 
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO rides (driver_id, pickup_location, destination, ride_date, ride_time, available_seats, fare, description, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [driver1Id, "Mirpur 10", "University City Campus", "2026-08-02", "10:15", 4, 100, "Leaving early to beat traffic. Non-smoking ride.", "available"]
       );
 
       // Requests
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO ride_requests (ride_id, passenger_id, request_status) VALUES ($1, $2, $3)`,
         [ride1Id, student1Id, "Pending"]
       );
 
-      await pgPool.query(
+      await pool.query(
         `INSERT INTO ride_requests (ride_id, passenger_id, request_status) VALUES ($1, $2, $3)`,
         [ride2Id, student2Id, "Accepted"]
       );
@@ -684,14 +704,6 @@ export async function setDatabaseUrl(newDbUrl) {
     }
   }
 
-  if (pgPool) {
-    try { await pgPool.end(); } catch (e) {}
-  }
-
-  pgPool = testPool;
-  process.env.DATABASE_URL = cleanUrl;
-  process.env.SUPABASE_DB_URL = cleanUrl;
-
   // Save to .env
   try {
     const envPath = path.join(process.cwd(), '.env');
@@ -709,8 +721,24 @@ export async function setDatabaseUrl(newDbUrl) {
     console.error("Failed to update .env file:", err);
   }
 
-  await initPostgresTables();
-  await seedPostgresData();
+  try {
+    await initPostgresTables(testPool);
+    await seedPostgresData(testPool);
+  } catch (err) {
+    try { await testPool.end(); } catch (e) {}
+    throw err;
+  }
+
+  const oldPool = pgPool;
+  pgPool = testPool;
+  process.env.DATABASE_URL = cleanUrl;
+  process.env.SUPABASE_DB_URL = cleanUrl;
+
+  if (oldPool) {
+    try { await oldPool.end(); } catch (e) {}
+  }
+
+  initPromise = Promise.resolve(pgPool);
 
   return getDatabaseStatus();
 }

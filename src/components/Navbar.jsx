@@ -82,31 +82,18 @@ export const Navbar = () => {
             </div>
 
             {/* Right: User Profile & Logout */}
-            <div className="flex items-center space-x-3">
-              {/* Database Connection / Supabase Status Button */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              
+              {/* Theme Toggle Button */}
               <button
-                onClick={() => setIsDbModalOpen(true)}
-                className="p-2 md:px-3.5 md:py-2 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-900 hover:border-slate-200 dark:hover:border-slate-800 rounded-xl transition-all duration-200 cursor-pointer flex items-center space-x-2"
-                title="Database Status & Configuration (ডেটাবেজ স্ট্যাটাস)"
+                onClick={toggleTheme}
+                className="p-2 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 rounded-xl transition-all duration-200 cursor-pointer"
+                title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
               >
-                <Database className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
-                <div className="hidden md:flex flex-col text-left leading-none">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Database Status</span>
-                  <span className="text-xs font-bold mt-0.5">
-                    {dbStatus?.mode === 'cloud' ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
-                        <span>Cloud (Live)</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                      </span>
-                    ) : (
-                      <span className="text-amber-500 dark:text-amber-400 flex items-center space-x-1">
-                        <span>Local SQLite</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span>
-                      </span>
-                    )}
-                  </span>
-                </div>
+                {theme === 'light' ? <Moon className="w-4.5 h-4.5 text-indigo-600" /> : <Sun className="w-4.5 h-4.5 text-amber-400" />}
               </button>
+
+              <div className="h-4 w-px bg-slate-150 dark:bg-slate-800 shrink-0" />
 
               {isAuthenticated && user ? (
                 <div className="flex items-center space-x-3">
@@ -319,17 +306,6 @@ export const Navbar = () => {
                   )}
                 </div>
                 <span className="text-[10px] opacity-60 capitalize">{theme} Mode</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsDbModalOpen(true);
-                  setMenuOpen(false);
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 dark:bg-emerald-500/5 hover:bg-emerald-500/20 dark:hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/20 transition-all duration-200 flex items-center space-x-2 cursor-pointer"
-              >
-                <Database className="w-4 h-4" />
-                <span>Database Connection</span>
               </button>
             </div>
 
