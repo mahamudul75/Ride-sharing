@@ -56,59 +56,59 @@ export const Navbar = () => {
 
   return (
     <>
-      <nav className="bg-white/95 dark:bg-slate-950/95 text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-900 sticky top-0 z-40 shadow-xs backdrop-blur-md transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <nav className="bg-slate-950/95 text-slate-100 border-b border-slate-900 sticky top-0 z-40 shadow-xs backdrop-blur-md transition-colors duration-200 w-full max-w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 w-full">
             
             {/* Left: Brand & Menu Toggle */}
-            <div className="flex items-center space-x-3.5">
+            <div className="flex items-center space-x-2 sm:space-x-3.5 min-w-0 shrink">
               {/* 3-line Hamburger Menu Button */}
               <button
                 onClick={() => setMenuOpen(true)}
-                className="p-2 rounded-xl text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 focus:outline-none transition-all duration-200 cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-900 border border-transparent focus:outline-none transition-all duration-200 cursor-pointer shrink-0"
                 title="Open Navigation Menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
 
-              <Link to="/" className="flex items-center space-x-2.5 text-emerald-600 dark:text-emerald-400 font-bold text-xl tracking-tight group">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/25 transition-all duration-200">
-                  <Car className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <Link to="/" className="flex items-center space-x-2 text-emerald-400 font-bold text-base sm:text-xl tracking-tight group shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all duration-200 shrink-0">
+                  <Car className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="leading-none text-slate-900 dark:text-white font-extrabold text-lg font-display tracking-tight">CampusRide</span>
+                  <span className="leading-none text-white font-extrabold text-base sm:text-lg font-display tracking-tight">CampusRide</span>
                 </div>
               </Link>
             </div>
 
-            {/* Right: User Profile & Logout */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Right: User Profile & Actions */}
+            <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
               
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
-                className="p-2 text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 rounded-xl transition-all duration-200 cursor-pointer"
+                className="p-1.5 sm:p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-900 rounded-xl transition-all duration-200 cursor-pointer shrink-0"
                 title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
               >
-                {theme === 'light' ? <Moon className="w-4.5 h-4.5 text-indigo-600" /> : <Sun className="w-4.5 h-4.5 text-amber-400" />}
+                {theme === 'light' ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-400" />}
               </button>
 
-              <div className="h-4 w-px bg-slate-150 dark:bg-slate-800 shrink-0" />
+              <div className="h-4 w-px bg-slate-800 shrink-0" />
 
               {isAuthenticated && user ? (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
                   <Link
                     to="/profile"
-                    className="flex items-center space-x-2.5 p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all duration-200 group"
+                    className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-900 transition-all duration-200 group"
                   >
                     <img
                       src={user.profile_image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250"}
                       alt={user.name}
-                      className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-800 group-hover:border-emerald-500 dark:group-hover:border-emerald-400 transition-colors duration-200"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-slate-800 group-hover:border-emerald-400 transition-colors duration-200"
                     />
                     <div className="flex flex-col text-left hidden sm:flex">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-white leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-200">{user.name}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 capitalize font-medium leading-none mt-0.5">
+                      <span className="text-xs font-semibold text-white leading-tight group-hover:text-emerald-400 transition-colors duration-200">{user.name}</span>
+                      <span className="text-[10px] text-slate-400 capitalize font-medium leading-none mt-0.5">
                         {user.role} {user.department ? `• ${user.department}` : ''}
                       </span>
                     </div>
@@ -116,26 +116,26 @@ export const Navbar = () => {
 
                   <button
                     onClick={handleLogout}
-                    className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all duration-200 cursor-pointer"
+                    className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 rounded-xl transition-all duration-200 cursor-pointer shrink-0"
                     title="Logout"
                   >
-                    <LogOut className="w-4.5 h-4.5" />
+                    <LogOut className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
                   <Link
                     to="/login"
-                    className="px-3.5 py-1.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all duration-200 flex items-center space-x-1.5"
+                    className="px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-900 transition-all duration-200 flex items-center space-x-1 sm:space-x-1.5 shrink-0"
                   >
-                    <LogIn className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                    <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
                     <span>Login</span>
                   </Link>
                   <Link
                     to="/register"
-                    className="px-4 py-1.5 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-200 flex items-center space-x-1.5 shadow-xs"
+                    className="hidden sm:flex px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.98] transition-all duration-200 items-center space-x-1.5 shadow-xs shrink-0"
                   >
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>Register</span>
                   </Link>
                 </div>
@@ -282,6 +282,34 @@ export const Navbar = () => {
                       </div>
                     </Link>
                   )}
+                </>
+              )}
+
+              {!isAuthenticated && (
+                <>
+                  <div className="h-px bg-slate-100 dark:bg-slate-900 my-4" />
+                  <span className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Account Access</span>
+
+                  <Link
+                    to="/register"
+                    onClick={() => setMenuOpen(false)}
+                    className="w-full px-3.5 py-3 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all duration-200 flex items-center justify-between shadow-xs"
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <UserPlus className="w-4 h-4" />
+                      <span>Create Account (Register)</span>
+                    </div>
+                    <span className="text-[10px] bg-slate-950/20 px-1.5 py-0.5 rounded font-semibold">New</span>
+                  </Link>
+
+                  <Link
+                    to="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all duration-200 flex items-center space-x-2.5 mt-2"
+                  >
+                    <LogIn className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                    <span>Sign In (Login)</span>
+                  </Link>
                 </>
               )}
             </div>

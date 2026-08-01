@@ -69,14 +69,14 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-xl w-full space-y-6 bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center py-8 sm:py-12 px-3 sm:px-6 lg:px-8 w-full max-w-full overflow-x-hidden">
+      <div className="max-w-xl w-full mx-auto space-y-5 sm:space-y-6 bg-slate-900 border border-slate-800 p-4 sm:p-8 rounded-2xl shadow-2xl">
         
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
             <UserPlus className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Create Campus Account</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Create Campus Account</h2>
           <p className="text-xs text-slate-400">Register as a Student Passenger or Student Driver</p>
         </div>
 
@@ -86,54 +86,55 @@ export const RegisterPage = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           
           {/* Role Selection Tabs */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2">Select User Role</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setRole('student')}
-                className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center space-x-2 transition-all ${
+                className={`py-3 px-2 sm:px-3 rounded-xl border text-xs font-bold flex items-center justify-center space-x-1.5 sm:space-x-2 transition-all cursor-pointer ${
                   role === 'student'
-                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-sm'
+                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
-                <User className="w-4 h-4" />
-                <span>Student / Passenger</span>
+                <User className="w-4 h-4 shrink-0" />
+                <span className="truncate">Student Passenger</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRole('driver')}
-                className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center space-x-2 transition-all ${
+                className={`py-3 px-2 sm:px-3 rounded-xl border text-xs font-bold flex items-center justify-center space-x-1.5 sm:space-x-2 transition-all cursor-pointer ${
                   role === 'driver'
-                    ? 'bg-cyan-500/15 border-cyan-500 text-cyan-400 shadow-sm'
+                    ? 'bg-cyan-500/15 border-cyan-500 text-cyan-400 shadow-sm ring-1 ring-cyan-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
-                <Car className="w-4 h-4" />
-                <span>Student Driver</span>
+                <Car className="w-4 h-4 shrink-0" />
+                <span className="truncate">Student Driver</span>
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             
             {/* Name */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name *</label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
                 <input
                   type="text"
                   required
+                  autoComplete="name"
                   placeholder="e.g. Tanvir Hasan"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -142,14 +143,15 @@ export const RegisterPage = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Campus Email *</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   placeholder="user@campus.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -158,14 +160,15 @@ export const RegisterPage = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Password *</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
                 <input
                   type="password"
                   required
+                  autoComplete="new-password"
                   placeholder="Min 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -174,13 +177,14 @@ export const RegisterPage = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">Phone Number</label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
                 <input
                   type="text"
+                  autoComplete="tel"
                   placeholder="+8801700000000"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -191,11 +195,11 @@ export const RegisterPage = () => {
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">Academic Department</label>
             <div className="relative">
-              <BookOpen className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <BookOpen className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full min-w-0 bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500"
               >
                 <option value="Software Engineering">Software Engineering</option>
                 <option value="Computer Science & Engineering">Computer Science & Engineering</option>
@@ -208,34 +212,34 @@ export const RegisterPage = () => {
 
           {/* Conditional Driver Details */}
           {role === 'driver' && (
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 sm:p-4 space-y-3">
               <h4 className="text-xs font-bold text-cyan-400 flex items-center space-x-1.5">
-                <Car className="w-4 h-4" />
+                <Car className="w-4 h-4 shrink-0" />
                 <span>Vehicle Information (Required for Drivers)</span>
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Vehicle Name</label>
+                  <label className="block text-[11px] text-slate-400 mb-1">Vehicle Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Toyota Axio"
                     value={vehicleName}
                     onChange={(e) => setVehicleName(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Vehicle Reg No</label>
+                  <label className="block text-[11px] text-slate-400 mb-1">Vehicle Reg No *</label>
                   <input
                     type="text"
                     required
                     placeholder="DHAKA-METRO-GA-00"
                     value={vehicleNumber}
                     onChange={(e) => setVehicleNumber(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-white"
                   />
                 </div>
 
@@ -244,7 +248,7 @@ export const RegisterPage = () => {
                   <select
                     value={vehicleType}
                     onChange={(e) => setVehicleType(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    className="w-full min-w-0 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-white"
                   >
                     <option value="Car">Car (Sedan/SUV)</option>
                     <option value="Bike">Motorcycle / Bike</option>
@@ -258,7 +262,7 @@ export const RegisterPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition-colors shadow-lg disabled:opacity-50"
+            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition-colors shadow-lg disabled:opacity-50 cursor-pointer"
           >
             {loading ? 'Creating Account...' : 'Complete Registration'}
           </button>

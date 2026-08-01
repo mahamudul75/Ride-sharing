@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Mail, Lock } from 'lucide-react';
+import { LogIn, Mail, Lock, UserPlus } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -41,8 +41,8 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center py-8 sm:py-12 px-3 sm:px-6 lg:px-8 w-full max-w-full overflow-x-hidden">
+      <div className="max-w-md w-full mx-auto space-y-6 sm:space-y-8 bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-2xl shadow-2xl relative overflow-hidden">
         
         {/* Top Header */}
         <div className="text-center space-y-2">
@@ -104,10 +104,14 @@ export const LoginPage = () => {
           </button>
         </form>
 
-        <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-800">
-          <span>Don't have an account? </span>
-          <Link to="/register" className="text-emerald-400 hover:underline font-bold">
-            Register Account
+        <div className="pt-3 border-t border-slate-800/80 text-center space-y-2">
+          <p className="text-xs text-slate-400">Don't have an account yet?</p>
+          <Link 
+            to="/register" 
+            className="w-full py-2.5 px-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 text-emerald-400 font-bold rounded-xl text-xs transition-all flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Create New Student / Driver Account</span>
           </Link>
         </div>
 
