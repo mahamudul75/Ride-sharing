@@ -367,67 +367,85 @@ async function initPostgresTables(pool = pgPool) {
 async function seedPostgresData(pool = pgPool) {
   if (!pool) return;
   try {
-    const res = await pool.query("SELECT COUNT(*) as count FROM users");
-    const count = parseInt(res.rows[0].count, 10);
+    const hashedPassword = await bcrypt.hash("password123", 10);
 
-    if (count === 0) {
-      console.log("Seeding Supabase PostgreSQL database...");
-      const hashedPassword = await bcrypt.hash("password123", 10);
+    const checkUserExists = async (email) => {
+      const res = await pool.query("SELECT id FROM users WHERE LOWER(email) = $1", [email.toLowerCase().trim()]);
+      return res.rows.length > 0 ? res.rows[0].id : null;
+    };
 
-      // Admin
+    // 1. Admin
+    let adminId = await checkUserExists("admin@campus.edu");
+    if (!adminId) {
       const adminRes = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["System Admin", "admin@campus.edu", hashedPassword, "+8801700000000", "Computer Science", "admin"]
       );
-      const adminId = adminRes.rows[0].id;
+      adminId = adminRes.rows[0].id;
       await pool.query(
-        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id) DO NOTHING`,
         [adminId, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250", "", "", ""]
       );
+    }
 
-      // Drivers
+    // 2. Drivers
+    let driver1Id = await checkUserExists("rahim.driver@campus.edu");
+    if (!driver1Id) {
       const driver1Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Rahim Ahmed", "rahim.driver@campus.edu", hashedPassword, "+8801811111111", "Electrical Engineering", "driver"]
       );
-      const driver1Id = driver1Res.rows[0].id;
+      driver1Id = driver1Res.rows[0].id;
       await pool.query(
-        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id) DO NOTHING`,
         [driver1Id, "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250", "Toyota Corolla", "DHAKA-METRO-GA-1234", "Car"]
       );
+    }
 
+    let driver2Id = await checkUserExists("tanvir.driver@campus.edu");
+    if (!driver2Id) {
       const driver2Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Tanvir Hasan", "tanvir.driver@campus.edu", hashedPassword, "+8801922222222", "Software Engineering", "driver"]
       );
-      const driver2Id = driver2Res.rows[0].id;
+      driver2Id = driver2Res.rows[0].id;
       await pool.query(
-        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id) DO NOTHING`,
         [driver2Id, "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250", "Yamaha FZ-S", "DHAKA-METRO-HA-5678", "Bike"]
       );
+    }
 
-      // Students
+    // 3. Students
+    let student1Id = await checkUserExists("anika.student@campus.edu");
+    if (!student1Id) {
       const student1Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Anika Rahman", "anika.student@campus.edu", hashedPassword, "+8801733333333", "Software Engineering", "student"]
       );
-      const student1Id = student1Res.rows[0].id;
+      student1Id = student1Res.rows[0].id;
       await pool.query(
-        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id) DO NOTHING`,
         [student1Id, "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=250", "", "", ""]
       );
+    }
 
+    let student2Id = await checkUserExists("sabbir.student@campus.edu");
+    if (!student2Id) {
       const student2Res = await pool.query(
         `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         ["Sabbir Hossain", "sabbir.student@campus.edu", hashedPassword, "+8801644444444", "Business Administration", "student"]
       );
-      const student2Id = student2Res.rows[0].id;
+      student2Id = student2Res.rows[0].id;
       await pool.query(
-        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id) DO NOTHING`,
         [student2Id, "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=250", "", "", ""]
       );
+    }
 
-      // Rides
+    // 4. Seeding rides only if there are no rides in the DB
+    const ridesCountRes = await pool.query("SELECT COUNT(*) as count FROM rides");
+    const ridesCount = parseInt(ridesCountRes.rows[0].count, 10);
+    if (ridesCount === 0 && driver1Id && driver2Id) {
       const ride1Res = await pool.query(
         `INSERT INTO rides (driver_id, pickup_location, destination, ride_date, ride_time, available_seats, fare, description, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
         [driver1Id, "Dhanmondi 27", "Daffodil International University", "2026-08-01", "08:30", 3, 120, "AC Sedan car, comfortable ride directly to Main Campus.", "available"]
@@ -446,18 +464,20 @@ async function seedPostgresData(pool = pgPool) {
       );
 
       // Requests
-      await pool.query(
-        `INSERT INTO ride_requests (ride_id, passenger_id, request_status) VALUES ($1, $2, $3)`,
-        [ride1Id, student1Id, "Pending"]
-      );
+      if (student1Id && student2Id) {
+        await pool.query(
+          `INSERT INTO ride_requests (ride_id, passenger_id, request_status) VALUES ($1, $2, $3)`,
+          [ride1Id, student1Id, "Pending"]
+        );
 
-      await pool.query(
-        `INSERT INTO ride_requests (ride_id, passenger_id, request_status) VALUES ($1, $2, $3)`,
-        [ride2Id, student2Id, "Accepted"]
-      );
-
-      console.log("Supabase PostgreSQL seeded successfully!");
+        await pool.query(
+          `INSERT INTO ride_requests (ride_id, passenger_id, request_status) VALUES ($1, $2, $3)`,
+          [ride2Id, student2Id, "Accepted"]
+        );
+      }
     }
+
+    console.log("Supabase PostgreSQL checked & seeded successfully!");
   } catch (err) {
     console.error("Error seeding Supabase Postgres data:", err);
   }

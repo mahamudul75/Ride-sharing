@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Mail, Lock, Sparkles, UserCheck, Shield } from 'lucide-react';
+import { LogIn, Mail, Lock } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -40,12 +40,6 @@ export const LoginPage = () => {
     }
   };
 
-  const fillQuickAccount = (sampleEmail, samplePass = 'password123') => {
-    setEmail(sampleEmail);
-    setPassword(samplePass);
-    setError('');
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl relative overflow-hidden">
@@ -61,44 +55,13 @@ export const LoginPage = () => {
           </p>
         </div>
 
-        {/* Quick Demo Credentials Assistant */}
-        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs">
-          <div className="flex items-center space-x-1.5 text-emerald-400 font-bold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Quick Academic Evaluator Login</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => fillQuickAccount('admin@campus.edu')}
-              className="py-1.5 px-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 text-[11px] font-semibold transition-colors truncate"
-            >
-              👑 Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => fillQuickAccount('rahim.driver@campus.edu')}
-              className="py-1.5 px-2 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg text-cyan-300 text-[11px] font-semibold transition-colors truncate"
-            >
-              🚗 Driver
-            </button>
-            <button
-              type="button"
-              onClick={() => fillQuickAccount('anika.student@campus.edu')}
-              className="py-1.5 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-emerald-300 text-[11px] font-semibold transition-colors truncate"
-            >
-              🎓 Student
-            </button>
-          </div>
-        </div>
-
         {error && (
           <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-medium">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4" autoComplete="off">
           
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">Campus Email</label>
@@ -107,6 +70,7 @@ export const LoginPage = () => {
               <input
                 type="email"
                 required
+                autoComplete="username"
                 placeholder="student@campus.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -122,6 +86,7 @@ export const LoginPage = () => {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -133,7 +98,7 @@ export const LoginPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition-colors shadow-lg disabled:opacity-50"
+            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition-colors shadow-lg disabled:opacity-50 cursor-pointer"
           >
             {loading ? 'Authenticating...' : 'Sign In'}
           </button>
@@ -150,3 +115,4 @@ export const LoginPage = () => {
     </div>
   );
 };
+
