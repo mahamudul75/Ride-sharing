@@ -375,6 +375,26 @@ async function seedPostgresData(pool = pgPool) {
     };
 
     // 1. Admin
+    let userNaiem = await checkUserExists("naiemhasan4u@gmail.com");
+    const naiemPass = await bcrypt.hash("123456", 10);
+    if (!userNaiem) {
+      const naiemRes = await pool.query(
+        `INSERT INTO users (name, email, password, phone, department, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        ["Naiem Hasan", "naiemhasan4u@gmail.com", naiemPass, "+8801700000000", "Computer Science", "admin"]
+      );
+      userNaiem = naiemRes.rows[0].id;
+      await pool.query(
+        `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id) DO NOTHING`,
+        [userNaiem, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250", "", "", ""]
+      );
+    } else {
+      // Ensure password and role are updated to 123456 and admin
+      await pool.query(
+        `UPDATE users SET password = $1, role = $2 WHERE id = $3`,
+        [naiemPass, "admin", userNaiem]
+      );
+    }
+
     let adminId = await checkUserExists("admin@campus.edu");
     if (!adminId) {
       const adminRes = await pool.query(
@@ -484,12 +504,34 @@ async function seedPostgresData(pool = pgPool) {
 }
 
 async function seedSqliteData() {
+  const hashedPassword = await bcrypt.hash("password123", 10);
+  const naiemPassword = await bcrypt.hash("123456", 10);
+
+  // Ensure naiemhasan4u@gmail.com Admin user exists in SQLite
+  const resNaiem = sqliteDb.exec("SELECT id FROM users WHERE email = 'naiemhasan4u@gmail.com'");
+  if (!resNaiem[0] || !resNaiem[0].values.length) {
+    sqliteDb.run(
+      `INSERT INTO users (name, email, password, phone, department, role) VALUES (?, ?, ?, ?, ?, ?)`,
+      ["Naiem Hasan", "naiemhasan4u@gmail.com", naiemPassword, "+8801700000000", "Computer Science", "admin"]
+    );
+    const naiemId = getSqliteInsertedId();
+    sqliteDb.run(
+      `INSERT INTO profiles (user_id, profile_image, vehicle_name, vehicle_number, vehicle_type) VALUES (?, ?, ?, ?, ?)`,
+      [naiemId, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250", "", "", ""]
+    );
+  } else {
+    const naiemId = resNaiem[0].values[0][0];
+    sqliteDb.run(
+      `UPDATE users SET password = ?, role = 'admin' WHERE id = ?`,
+      [naiemPassword, naiemId]
+    );
+  }
+
   const res = sqliteDb.exec("SELECT COUNT(*) as count FROM users");
   const userCount = res[0]?.values[0][0] || 0;
 
-  if (userCount === 0) {
+  if (userCount <= 1) {
     console.log("Seeding local SQLite database...");
-    const hashedPassword = await bcrypt.hash("password123", 10);
 
     sqliteDb.run(
       `INSERT INTO users (name, email, password, phone, department, role) VALUES (?, ?, ?, ?, ?, ?)`,
